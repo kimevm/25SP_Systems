@@ -45,7 +45,8 @@ double get_mean_squared_error(double values[], double mean) {
     double summation = 0.0;
 
     for(int i = 0; i < RUNS; i++) { //this is just calculating the MSE
-        summation += pow(mean - values[i], 2);
+	double diff = mean - values[i];    
+        summation += diff * diff; // pow error change
     }
 
     return summation / RUNS;
@@ -77,7 +78,7 @@ void print_histogram(int counts[]) {
     for(int i = 0; i < BINS; i++){
         /* Change: Calculate center as bin_start plus half the bin size */
         double bin_center = bin_start + bin_size / 2.0;
-        printf("%.4f: ", bin_center);
+        printf("%.4f ", bin_center);
         for (int j = 0; j < counts[i] / SCALE; j++) {
             printf("X"); //printing x for the number of counts divided by the scale
         }
@@ -118,12 +119,10 @@ int main(int argc, char *argv[]) {
     create_histogram(values, counts);
     print_histogram(counts);
 
-    printf("\nSample mean over %d means of %d samples each: %f\n", RUNS, SAMPLES, avg);
-    printf("Sample variance (mean squared error): %f\n", mse);
+    printf("Sample mean over %d means of %d samples each: %.6f   Sample variance: %.6f\n", RUNS, SAMPLES, avg, mse);
 
     free(values); //freeing up memory
     free(counts);
 
     return 0;
 }
-
