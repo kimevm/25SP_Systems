@@ -7,15 +7,18 @@
  */
 #include <stdio.h>
 #include <stdlib.h>
+#include <sys/time.h>
 
-#define DIM 4
 #define MAX_VALUE 20
 #define TRUE  1
 #define FALSE 0
-#define MAX_VALUE 20
+#define MICROSECOND_PER_SECOND 1000000
+#define MIN_DIM_POWER 3
+#define MAX_DIM_POWER 10
+
 
 void init(const int dim, int * const m) {
-    for (int i = 0; i < DIM * DIM; i++) {
+    for (int i = 0; i < dim * dim; i++) {
         m[i] = rand() % MAX_VALUE;
     }
 }
@@ -65,9 +68,8 @@ void multiply_transpose(const int dim, const int * const a, const int * const b_
 
 int verify(const int dim, const int * const c1, const int * const c2) {
     for (int i = 0; i < dim * dim; i++) {
-        if (c1[i] != c2[i]) {
+        if (c1[i] != c2[i])
             return FALSE;
-        }
     }
     return TRUE;
 }
@@ -78,37 +80,41 @@ void transpose_and_multiply(const int dim, const int * const a, int * const b, i
 }
 
 void run_test(const int dim) {
-    int *matrix1 = calloc(dim * dim, sizeof(int));
-    int *matrix2 = calloc(dim * dim, sizeof(int));
-    init(dim, matrix1);
-    init(dim, matrix2);
-    int *c1 = calloc(dim * dim, sizeof(int));
-    int *c2 = calloc(dim * dim, sizeof(int));
+    int *a  = (int *) calloc(dim * dim, sizeof(int));
+    int *b  = (int *) calloc(dim * dim, sizeof(int));
+    int *c1 = (int *) calloc(dim * dim, sizeof(int));
+    int *c2 = (int *) calloc(dim * dim, sizeof(int));
 
-    print(dim, matrix1);
-    printf("\n");
-    print(dim, matrix2);
-    printf("\n");
-
-
-    multiply(dim, matrix1, matrix2, c1);
-    transpose_and_multiply(dim, matrix1, matrix2, c2);
-
-    print(dim, c1);
-    printf("\n");
-    print(dim, c2);
-
-    if (verify(dim, c1, c2)) {
-        printf("Matrixes Match!");
-    } else {
-        printf("No Match!");
+    if (!a || !b || !c1 || !c2) {
+        fprintf(stderr, "Memory allocation failed!\n");
+        exit(EXIT_FAILURE);
     }
 
-    free(matrix1);
-    free(matrix2);
+    init(dim, a);
+    init(dim, b);
+
+    struct timeval tv1 = run_and_time(multiply, dim, a, b, c1);
+    struct timeval tv2 = run_and_time(transpose_and_multiply, dim, a, b, c2);
+
+    int ok = verify(dim, c1, c2);
+    printf("Testing on %d-by-%d square matrices.\n", dim, dim);
+    if (ok == TRUE) {
+        printf("Results agree.\n");
+    } else {
+        printf("Results do not agree.\n");
+    }
+    printf("Standard multiplication: %ld seconds, %d microseconds\n",
+           (long)tv1.tv_sec, (int)tv1.tv_usec);
+    printf("Multiplication with transpose: %ld seconds, %d microseconds\n",
+           (long)tv2.tv_sec, (int)tv2.tv_usec);
+
+    double speedup = get_speedup(&tv1, &tv2);
+    printf("Speedup: %f\n\n", speedup);
+
+    free(a);
+    free(b);
     free(c1);
     free(c2);
-    
 }
 
 struct timeval run_and_time(
@@ -117,11 +123,32 @@ struct timeval run_and_time(
     const int * const a,
     int * const b,
     int * const c
-);
+) {
+    struct timeval start, end, elapsed;
+    gettimeofday(&start, NULL);
+    mult_func(dim, a, b, c);
+    gettimeofday(&end, NULL);
 
-double get_speedup(struct timeval * result1, struct timeval * result2);
+    elapsed.tv_sec = end.tv_sec - start.tv_sec;
+    elapsed.tv_usec = end.tv_usec - start.tv_usec;
+    if (elapsed.tv_usec < 0) {
+        elapsed.tv_sec -= 1;
+        elapsed.tv_usec += MICROSECONDS_PER_SECOND;
+    }
+
+    return elapsed;
+}
+
+double get_speedup(struct timeval * result1, struct timeval * result2) {
+    double t1 = result1->tv_sec + result1->tv_usec / 1000000.0;
+    double t2 = result2->tv_sec + result2->tv_usec / 1000000.0;
+    return t1 / t2;
+}
 
 int main() {
-    run_test(DIM);
+    for (int power = MIN_DIM_POWER; power <= MAX_DIM_POWER; power++) {
+        int dim = 1 << power;
+        run_test(dim);
+    }
     return EXIT_SUCCESS;
 }
