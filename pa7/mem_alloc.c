@@ -24,6 +24,48 @@ static int mem_extend(Header *last);
 
 
 
+static int mem_init(void) {
+    void *page = mmap(NULL, PAGE_SIZE, PROT_REAED | PROT_WRITE, MAP_PRIVATE | MAP_ANONYMOUS, -1, 0);
+    if (page == MAP_FAILED) {
+        return FAILURE;
+    }
+    
+    free_list = (Header *)page;
+    free_list->size = PAGE_SIZE - sizeof(Header);
+    free_list->next = NULL;
+    free_list->prev = NULL;
+    set_free(free_list);
+
+    return SUCCESS;
+}
+
+static int mem_extend(Header * last) {
+    void *page = mmap(NULL, PAGE_SIZE, PROT_REAED | PROT_WRITE, MAP_PRIVATE | MAP_ANONYMOUS, -1, 0);
+    if (page == MAP_FAILED) {
+        return FAILURE;
+    }
+
+    Header *h = (Header *)page;
+    h->size = PAGE_SIZE - sizeof(Header);
+    h->next = NULL;
+    h->prev = last;
+    set_free(h);
+
+    last->next = h;
+    return SUCCESS;
+}
+
+void * mem_alloc(size_t requested_size) {
+}
+
+void mem_free(void * ptr) {
+}
+
+void print_header(Header * h) {
+}
+
+void print_list(void) {
+}
 
 /* Helper Implementation (Delete this comment later)*/
 
