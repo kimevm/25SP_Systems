@@ -140,7 +140,7 @@ void mem_free(void * ptr) {
 }
 
 void print_header(Header * h) { 
-    printf("Addr: %p\n", (void *)h);
+    printf("    Addr: %p\n", (void *)h);
     printf("    Size: %zu\n", get_size(h));
     printf("    Previous: %p\n", (void *)h->previous);
     printf("    Next: %p\n", (void *)h->next);
@@ -148,7 +148,7 @@ void print_header(Header * h) {
 
 void print_list(void) {
     if (free_list == NULL) {
-        puts("(Empty list.)");
+        printf("(Empty list.)\n");
         return;
     }
     Header *curr = free_list;
